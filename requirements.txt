@@ -1,0 +1,15 @@
+flask==2.3.3
+flask-cors==4.0.0
+earthengine-api==0.1.374
+pandas==2.1.1
+numpy==1.24.3
+requests==2.31.0
+python-dotenv==1.0.0
+sqlite3
+geojson==3.0.1
+shapely==2.0.2
+fiona==1.9.5
+geopandas==0.14.1
+matplotlib==3.8.2
+plotly==5.17.0
+folium==0.15.0
