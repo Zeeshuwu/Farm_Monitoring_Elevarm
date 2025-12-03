@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌾 Double U Farm Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #2e7d32;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #2e7d32, #4caf50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .chart-container h3 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .controls h3 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4caf50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-active { 
+            background: linear-gradient(45deg, #4caf50, #45a049);
+        }
+        
+        .status-inactive { 
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 30px;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stat-value {
+                font-size: 2.5em;
+            }
+            
+            button {
+                padding: 12px 24px;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 Double U Farm Megamendung</h1>
+            <p>Satellite-Based Crop Monitoring System</p>
+            <p><span id="status-indicator" class="status-indicator status-active"></span><span id="farm-status">Loading...</span></p>
+        </div>
+
+        <div class="controls">
+            <h3>📊 Data Controls</h3>
+            <button onclick="refreshData()">🔄 Refresh Data</button>
+            <button onclick="processNewData()">🛰️ Process New Data</button>
+            <button onclick="exportData()">📥 Export Data</button>
+            <button onclick="testAPI()">🧪 Test API</button>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="ndvi-latest">--</div>
+                <div class="stat-label">Latest NDVI</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="evi-latest">--</div>
+                <div class="stat-label">Latest EVI</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-readings">--</div>
+                <div class="stat-label">Total Readings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-update">--</div>
+                <div class="stat-label">Last Update</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>📈 Vegetation Index Trends</h3>
+            <canvas id="trendsChart" width="400" height="200"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>📊 Monthly Averages</h3>
+            <canvas id="monthlyChart" width="400" height="200"></canvas>
+        </div>
+
+        <div class="footer">
+            <p>🚀 Powered by ELEVARM | 🛰️ Satellite Data from Sentinel-2 | 🌱 Sustainable Agriculture</p>
+        </div>
+    </div>
+
+    <script>
+        let trendsChart, monthlyChart;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard loading...');
+            loadFarmStatus();
+            loadFarmData();
+            initializeCharts();
+        });
+
+        async function loadFarmStatus() {
+            try {
+                console.log('📡 Loading farm status...');
+                const response = await fetch('/api/farm/status');
+                const data = await response.json();
+                
+                document.getElementById('farm-status').textContent = 
+                    `${data.status.toUpperCase()} - ${data.location}`;
+                
+                const indicator = document.getElementById('status-indicator');
+                indicator.className = `status-indicator status-${data.status}`;
+                
+                console.log('✅ Farm status loaded:', data);
+                
+            } catch (error) {
+                console.error('❌ Error loading farm status:', error);
+                document.getElementById('farm-status').textContent = 'ERROR - Check API';
+            }
+        }
+
+        async function loadFarmData() {
+            try {
+                console.log('📊 Loading farm data...');
+                const [summaryResponse, dataResponse] = await Promise.all([
+                    fetch('/api/farm/summary'),
+                    fetch('/api/farm/data')
+                ]);
+                
+                const summary = await summaryResponse.json();
+                const data = await dataResponse.json();
+                
+                console.log('📈 Summary:', summary);
+                console.log('📋 Data:', data);
+                
+                updateStats(summary);
+                updateCharts(data);
+                
+            } catch (error) {
+                console.error('❌ Error loading farm data:', error);
+                showError('Failed to load farm data. Please check the API.');
+            }
+        }
+
+        function updateStats(summary) {
+            // Update latest values
+            if (summary.variables && summary.variables.NDVI) {
+                document.getElementById('ndvi-latest').textContent = 
+                    summary.variables.NDVI.latest.value.toFixed(3);
+            }
+            if (summary.variables && summary.variables.EVI) {
+                document.getElementById('evi-latest').textContent = 
+                    summary.variables.EVI.latest.value.toFixed(3);
+            }
+            
+            document.getElementById('total-readings').textContent = summary.total_readings || 0;
+            
+            // Update last update time
+            const latestDate = summary.variables && summary.variables.NDVI ? 
+                summary.variables.NDVI.latest.date : 'Unknown';
+            document.getElementById('last-update').textContent = latestDate;
+        }
+
+        function initializeCharts() {
+            // Trends Chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'NDVI',
+                        data: [],
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'EVI',
+                        data: [],
+                        borderColor: '#2196f3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+
+            // Monthly Chart
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'NDVI Average',
+                        data: [],
+                        backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                    }, {
+                        label: 'EVI Average',
+                        data: [],
+                        backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(data) {
+            if (!data.data) {
+                console.log('⚠️ No chart data available');
+                return;
+            }
+
+            // Update trends chart
+            if (data.data.NDVI && data.data.EVI) {
+                const dates = data.data.NDVI.map(d => d.date);
+                const ndviValues = data.data.NDVI.map(d => d.value);
+                const eviValues = data.data.EVI.map(d => d.value);
+
+                trendsChart.data.labels = dates;
+                trendsChart.data.datasets[0].data = ndviValues;
+                trendsChart.data.datasets[1].data = eviValues;
+                trendsChart.update();
+
+                // Calculate monthly averages
+                updateMonthlyChart(data.data);
+            }
+        }
+
+        function updateMonthlyChart(data) {
+            const monthlyData = {};
+            
+            // Process NDVI data
+            if (data.NDVI) {
+                data.NDVI.forEach(point => {
+                    const month = point.date.substring(0, 7); // YYYY-MM
+                    if (!monthlyData[month]) {
+                        monthlyData[month] = { ndvi: [], evi: [] };
+                    }
+                    monthlyData[month].ndvi.push(point.value);
+                });
+            }
+            
+            // Process EVI data
+            if (data.EVI) {
+                data.EVI.forEach(point => {
+                    const month = point.date.substring(0, 7);
+                    if (!monthlyData[month]) {
+                        monthlyData[month] = { ndvi: [], evi: [] };
+                    }
+                    monthlyData[month].evi.push(point.value);
+                });
+            }
+
+            // Calculate averages
+            const months = Object.keys(monthlyData).sort();
+            const ndviAvgs = months.map(month => {
+                const values = monthlyData[month].ndvi;
+                return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0;
+            });
+            const eviAvgs = months.map(month => {
+                const values = monthlyData[month].evi;
+                return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0;
+            });
+
+            monthlyChart.data.labels = months;
+            monthlyChart.data.datasets[0].data = ndviAvgs;
+            monthlyChart.data.datasets[1].data = eviAvgs;
+            monthlyChart.update();
+        }
+
+        async function refreshData() {
+            showLoading('🔄 Refreshing data...');
+            await loadFarmData();
+            hideLoading();
+        }
+
+        async function processNewData() {
+            showLoading('🛰️ Processing new satellite data...');
+            
+            try {
+                const response = await fetch('/api/farm/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        variables: ['NDVI', 'EVI'],
+                        start_date: '2024-01-01',
+                        end_date: '2024-12-31'
+                    })
+                });
+                
+                const result = await response.json();
+                alert(`✅ Processing complete! Generated ${result.results_count} new data points.`);
+                await loadFarmData();
+                
+            } catch (error) {
+                alert('❌ Error processing data: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function exportData() {
+            fetch('/api/farm/data')
+                .then(response => response.json())
+                .then(data => {
+                    let csv = 'Date,Variable,Value\n';
+                    
+                    Object.keys(data.data).forEach(variable => {
+                        data.data[variable].forEach(point => {
+                            csv += `${point.date},${variable},${point.value}\n`;
+                        });
+                    });
+                    
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'double_u_farm_data.csv';
+                    a.click();
+                    
+                    alert('📥 Data exported successfully!');
+                });
+        }
+
+        function testAPI() {
+            fetch('/api/farm/status')
+                .then(response => response.json())
+                .then(data => {
+                    alert(`🧪 API Test Successful!\n\nFarm: ${data.farm_name}\nStatus: ${data.status}\nLocation: ${data.location}`);
+                })
+                .catch(error => {
+                    alert(`❌ API Test Failed: ${error.message}`);
+                });
+        }
+
+        function showLoading(message) {
+            const existing = document.querySelector('.loading');
+            if (existing) existing.remove();
+            
+            const loading = document.createElement('div');
+            loading.className = 'loading';
+            loading.textContent = message;
+            document.querySelector('.container').appendChild(loading);
+        }
+
+        function hideLoading() {
+            const loading = document.querySelector('.loading');
+            if (loading) loading.remove();
+        }
+
+        function showError(message) {
+            const error = document.createElement('div');
+            error.className = 'loading';
+            error.style.background = 'rgba(244, 67, 54, 0.1)';
+            error.style.color = '#d32f2f';
+            error.textContent = `❌ ${message}`;
+            document.querySelector('.container').appendChild(error);
+        }
+    </script>
+</body>
+</html>
